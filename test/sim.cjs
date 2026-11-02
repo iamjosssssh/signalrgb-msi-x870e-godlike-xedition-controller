@@ -80,10 +80,24 @@ console.log("--- color reports");
 	ok(state.sends.length === 1, "unchanged colors are not resent");
 	state.now += 1001;
 	api.Render();
-	ok(state.sends.length === 2, "colors are refreshed once a second");
+	ok(state.sends.length === 1, "a steady color isn't resent every second");
+	state.now += 30000;
+	api.Render();
+	ok(state.sends.length === 2, "colors are refreshed every 30 seconds");
 	state.color = [1, 2, 3];
 	api.Render();
-	ok(state.sends.length === 3, "changed colors go out immediately");
+	ok(state.sends.length === 2, "changed colors wait out the minimum gap");
+	state.now += 100;
+	api.Render();
+	ok(state.sends.length === 3 && state.sends[2].data[7] === 1, "changed colors go out after the gap");
+	const before = state.sends.length;
+	for (let frame = 0; frame < 60; frame++) {
+		state.color = [frame, 2, 3];
+		state.now += 16;
+		api.Render();
+	}
+	const sent = state.sends.length - before;
+	ok(sent >= 8 && sent <= 10, `a 60 fps effect sends about 10 reports a second (sent ${sent})`);
 	ok(state.other.length === 0, "no feature reads, reads or plain writes");
 	api.Shutdown(false);
 	const last = state.sends[state.sends.length - 1];

@@ -53,7 +53,11 @@ const SETUP_SIZE = 290;
 const LED_REPORT = 0x51;
 const LED_SIZE = 727;
 const MAX_LEDS_PER_REPORT = 240;
-const REFRESH_MS = 1000;
+// The board holds its colors with no traffic, so this only recovers from a missed write.
+const REFRESH_MS = 30000;
+// Writes can take 5 seconds to fail if MSI's CC_Engine is using the controller too, which also
+// stalls RAM lighting. See scripts\stop-msi-engine.ps1.
+const MIN_SEND_MS = 100;
 
 const TARGET_ARGB = 0x04;
 const TARGET_ONBOARD = 0x06;
@@ -192,7 +196,8 @@ function channelColors(name, override) {
 	return channel.getColors("Inline");
 }
 
-// Sends a report only when its colors changed, or once a second to hold them.
+// Sends a report only when its colors changed, or every REFRESH_MS, and never more often than
+// MIN_SEND_MS.
 function sendIfDue(key, target, index, rgb) {
 	if (rgb.length === 0 || rgb.length > MAX_LEDS_PER_REPORT * 3) {
 		return;
@@ -200,7 +205,7 @@ function sendIfDue(key, target, index, rgb) {
 	const now = Date.now();
 	const signature = rgb.join(",");
 	const last = lastSent[key];
-	if (last && last.signature === signature && now - last.at < REFRESH_MS) {
+	if (last && (now - last.at < MIN_SEND_MS || (last.signature === signature && now - last.at < REFRESH_MS))) {
 		return;
 	}
 	lastSent[key] = { signature, at: now };
