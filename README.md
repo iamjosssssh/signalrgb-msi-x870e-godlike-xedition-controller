@@ -38,9 +38,26 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 
 3. Restart SignalRGB. Its log should show `Custom Plugin File Loaded` with the plugin's path.
 
-**Step 2 is required.** The add-on only delivers the files. A plugin in an add-on loses to SignalRGB's downloaded copy of the same plugin, so on its own you'd still be running the built-in plugin with the RAM stall. The setup installs the plugin in the user plugins folder, which does win, and stops the programs that fight SignalRGB for the board and RAM. It's safe to skip a program you don't have. `setup-msi.ps1 -DryRun` lists the steps without changing anything, and `-Remove` undoes them.
+**Step 2 is required.** The add-on only delivers the files. A plugin in an add-on loses to SignalRGB's downloaded copy of the same plugin, so without the setup you'd still run the built-in plugin with the RAM stall.
 
-MSI Center's Mystic Light page stops working, and its overclocking features need `CC_Engine`, which only runs while MSI Center is open. See [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects).
+**The setup makes these changes to your PC:**
+
+| Change | Why | Effect you'll notice |
+|---|---|---|
+| Copies the plugin to `Documents\WhirlwindFX\Plugins\MSI_Godlike_X` | Only that folder can replace a built-in plugin | Your board uses this plugin. It won't get SignalRGB's plugin updates |
+| Adds the task `Keep MSI CC_Engine Closed`, running as admin at sign-in | `CC_Engine` causes the RAM stutter | MSI Center's overclocking and gaming-mode features only work while its window is open |
+| If MSI Center is installed: disables `LightKeeperService` and `Mystic_Light_Service`, blocks `LEDKeeper2.exe`, stops MSI Center starting at sign-in | They take the board and RAM back | MSI Center's Mystic Light page stops working. You have to open MSI Center yourself |
+| If L-Connect 3 is installed: renames its bundled `OpenRGB.exe` | It corrupts SignalRGB's RAM scan | L-Connect keeps working without OpenRGB |
+
+`setup-msi.ps1 -DryRun` lists the steps without changing anything. `setup-msi.ps1 -Remove` undoes them, then remove the add-on.
+
+**Warnings**
+
+- The plugin writes only on `MEG X870E GODLIKE X EDITION (MS-7E48)`, and does nothing on any other board.
+- An MSI Center or L-Connect update can undo some of these changes. Run the setup again if the board or RAM stop following SignalRGB.
+- This repo can't change the Dynamic Dashboard LCD. Keep using MSI Center for it. See [The LCD](#the-lcd).
+
+See [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects) for the details.
 
 ### Device pictures
 
