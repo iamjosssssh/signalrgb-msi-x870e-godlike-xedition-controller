@@ -24,12 +24,24 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 
 ## Install
 
-1. Create `Documents\WhirlwindFX\Plugins\MSI_Godlike_X`.
-2. Copy `plugin\MSI_185Byte_Controller_0x0DB0.js` into it. The file name must stay the same so it replaces the built-in plugin.
-3. If you run L-Connect 3, run `scripts\disable-lconnect-openrgb.ps1` as administrator.
-4. Fully restart SignalRGB.
+In SignalRGB, open **Settings**, then **Add-ons**, paste this repo's URL and restart SignalRGB:
 
-SignalRGB's log should show `Custom Plugin File Loaded` with this path. To undo, delete the folder and restart SignalRGB. `scripts\enable-lconnect-openrgb.ps1` restores OpenRGB.
+```
+https://github.com/iamjosssssh/signalrgb-msi-x870e-godlike-xedition-controller
+```
+
+That installs the plugin. SignalRGB's log should show `Custom Plugin File Loaded` with its path. To undo, remove the add-on and restart SignalRGB.
+
+Other programs can still fight SignalRGB for the board and RAM, and a plugin can't turn them off:
+
+- If you run L-Connect 3, run `scripts\disable-lconnect-openrgb.ps1` as administrator. `scripts\enable-lconnect-openrgb.ps1` restores it.
+- If you run MSI Center, see [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects).
+
+The add-on's files are in `%LOCALAPPDATA%\WhirlwindFX\SignalRgb\cache\addons`, in a folder named by a hash. Or clone this repo and run them from there.
+
+### Device pictures
+
+`tools\apply-device-images.ps1` shows real pictures for G.Skill Trident Z5 Neo RAM and the Razer Basilisk V3 Pro's dongle. It's separate because those devices use SignalRGB's own plugins, and the RAM picture applies to all RAM on that plugin. It makes a local copy of the current plugin with only the image changed. Run it again after a SignalRGB update, and restart SignalRGB after it prints `True`. `-Remove` undoes it.
 
 ## Safety
 
