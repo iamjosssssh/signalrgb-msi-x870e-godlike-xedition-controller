@@ -11,15 +11,16 @@ foreach ($key in $blockKeys) {
     }
 }
 $startup = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\9426MICRO-STARINTERNATION.MSICenter_kzh8wxbdkxb8p\MSI_Center_UWP'
-Set-ItemProperty $startup -Name State -Value 2
+if (Test-Path $startup) { Set-ItemProperty $startup -Name State -Value 2 }
 try {
     Enable-ScheduledTask -TaskName $task -ErrorAction Stop | Out-Null
 }
 catch {
     "error on ${task}: $_" | Out-File $log -Append -Encoding utf8
 }
-"$task state=$((Get-ScheduledTask -TaskName $task).State)" | Out-File $log -Append -Encoding utf8
+"$task state=$((Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue).State)" | Out-File $log -Append -Encoding utf8
 foreach ($name in $services) {
+    if (-not (Get-Service $name -ErrorAction SilentlyContinue)) { continue }
     try {
         Set-Service $name -StartupType Automatic -ErrorAction Stop
         Start-Service $name -ErrorAction Stop

@@ -22,17 +22,20 @@ Stop-Process -Name LEDKeeper2 -Force -ErrorAction SilentlyContinue
 
 # The MSI Center app starts itself at sign-in through a Windows startup task.
 $startup = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\9426MICRO-STARINTERNATION.MSICenter_kzh8wxbdkxb8p\MSI_Center_UWP'
-Set-ItemProperty $startup -Name State -Value 1
+if (Test-Path $startup) {
+    Set-ItemProperty $startup -Name State -Value 1
+    "MSI Center startup state=$((Get-ItemProperty $startup).State)" | Out-File $log -Append -Encoding utf8
+}
 Stop-Process -Name DCv2 -Force -ErrorAction SilentlyContinue
-"MSI Center startup state=$((Get-ItemProperty $startup).State)" | Out-File $log -Append -Encoding utf8
 
 # Prove the block: launch the task the way Windows would, then look for the process.
 Start-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 5
-"block test: LEDKeeper2 running=$([bool](Get-Process LEDKeeper2 -ErrorAction SilentlyContinue)) systray running=$([bool](Get-Process systray -ErrorAction SilentlyContinue)) task=$((Get-ScheduledTask -TaskName $task).State)" | Out-File $log -Append -Encoding utf8
+"block test: LEDKeeper2 running=$([bool](Get-Process LEDKeeper2 -ErrorAction SilentlyContinue)) systray running=$([bool](Get-Process systray -ErrorAction SilentlyContinue)) task=$((Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue).State)" | Out-File $log -Append -Encoding utf8
 Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
 
 foreach ($name in $services) {
+    if (-not (Get-Service $name -ErrorAction SilentlyContinue)) { continue }
     try {
         Stop-Service $name -Force -ErrorAction Stop
         Set-Service $name -StartupType Disabled -ErrorAction Stop
