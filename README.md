@@ -24,24 +24,27 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 
 ## Install
 
-In SignalRGB, open **Settings**, then **Add-ons**, paste this repo's URL and restart SignalRGB:
+1. In SignalRGB, open **Settings**, then **Add-ons**, paste this repo's URL and restart SignalRGB:
 
-```
-https://github.com/iamjosssssh/signalrgb-msi-x870e-godlike-xedition-controller
-```
+   ```
+   https://github.com/iamjosssssh/signalrgb-msi-x870e-godlike-xedition-controller
+   ```
 
-That installs the plugin. SignalRGB's log should show `Custom Plugin File Loaded` with its path. To undo, remove the add-on and restart SignalRGB.
+2. Run the setup from PowerShell. It asks for admin rights:
 
-Other programs can still fight SignalRGB for the board and RAM, and a plugin can't turn them off:
+   ```powershell
+   & (Get-ChildItem "$env:LOCALAPPDATA\WhirlwindFX\SignalRgb\cache\addons" -Recurse -Filter setup-msi.ps1 | Select-Object -First 1).FullName
+   ```
 
-- If you run L-Connect 3, run `scripts\disable-lconnect-openrgb.ps1` as administrator. `scripts\enable-lconnect-openrgb.ps1` restores it.
-- If you run MSI Center, see [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects).
+3. Restart SignalRGB. Its log should show `Custom Plugin File Loaded` with the plugin's path.
 
-The add-on's files are in `%LOCALAPPDATA%\WhirlwindFX\SignalRgb\cache\addons`, in a folder named by a hash. Or clone this repo and run them from there.
+**Step 2 is required.** The add-on only delivers the files. A plugin in an add-on loses to SignalRGB's downloaded copy of the same plugin, so on its own you'd still be running the built-in plugin with the RAM stall. The setup installs the plugin in the user plugins folder, which does win, and stops the programs that fight SignalRGB for the board and RAM. It's safe to skip a program you don't have. `setup-msi.ps1 -DryRun` lists the steps without changing anything, and `-Remove` undoes them.
+
+MSI Center's Mystic Light page stops working, and its overclocking features need `CC_Engine`, which only runs while MSI Center is open. See [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects).
 
 ### Device pictures
 
-`tools\apply-device-images.ps1` shows real pictures for G.Skill Trident Z5 Neo RAM and the Razer Basilisk V3 Pro's dongle. It's separate because those devices use SignalRGB's own plugins, and the RAM picture applies to all RAM on that plugin. It makes a local copy of the current plugin with only the image changed. Run it again after a SignalRGB update, and restart SignalRGB after it prints `True`. `-Remove` undoes it.
+Add `-DevicePictures` to the setup to show real pictures for G.Skill Trident Z5 Neo RAM and the Razer Basilisk V3 Pro's dongle. It's optional because those devices use SignalRGB's own plugins, and the RAM picture applies to all RAM on that plugin. `tools\apply-device-images.ps1` makes a local copy of each current plugin with only the image changed. Run it again after a SignalRGB update, and restart SignalRGB after it prints `True`.
 
 ## Safety
 
@@ -72,7 +75,7 @@ MSI's `CC_Engine_x64.exe` competes with SignalRGB for the Mystic Light controlle
 | Plugin sending at 4 updates a second, `CC_Engine` stopped | 0 in 4 minutes |
 | Plugin sending at 10 updates a second, `CC_Engine` stopped | 0 in 4 minutes |
 
-`CC_Engine` is MSI Center's overclocking and gaming-mode engine. `scripts\stop-msi-engine.ps1` keeps it closed unless MSI Center is open. It needs admin, because `MSI.CentralServer` starts the engine elevated and a normal process gets Access denied. Run it hidden and elevated at sign-in. MSI Center's overclocking features need it, so don't use this if you rely on them.
+`CC_Engine` is MSI Center's overclocking and gaming-mode engine. `scripts\stop-msi-engine.ps1` keeps it closed unless MSI Center is open, and the setup runs it at sign-in. It needs admin, because `MSI.CentralServer` starts the engine elevated and a normal process gets Access denied. MSI Center's overclocking features need it, so don't use this if you rely on them.
 
 ## Board logos stay dark
 

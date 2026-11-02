@@ -20,8 +20,8 @@ $ram = @{
 }
 $razer = @{
     Name = 'Razer_Modern_Mouse.js'; Vendor = 'Razer'
-    Find = 'device\.setImageFromUrl\(this\.getDeviceImage\(\)\);'
-    Replace = "device.setImageFromUrl(device.productId() === 0x00CD ? `"$images/razer-dongle.png`" : this.getDeviceImage());"
+    Find = 'export function Initialize\(\)\s*\{'
+    Replace = "export function Initialize() {`n`tif (device.productId() === 0x00CD) { device.setImageFromUrl(`"$images/razer-dongle.png`"); }"
 }
 
 # SignalRGB prefers its downloaded plugin updates over the copies in its install folder.
