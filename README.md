@@ -12,7 +12,7 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 | Logo lighting | Working and confirmed. See [Board logos stay dark](#board-logos-stay-dark) if yours don't light |
 | MSI's software taking the board back | Fixed. See [MSI keeps taking over](#msi-keeps-taking-over) |
 | RAM stutter on animated effects | Cause found and fixable. See [RAM stutter](#ram-stutter-on-animated-effects) |
-| Dynamic Dashboard LCD | Picture and video upload with `tools\godlike-lcd.ps1`. See [The LCD](#the-lcd) |
+| Dynamic Dashboard LCD | Experimental upload tool, not working yet. See [The LCD](#the-lcd). MSI Center is still the way to change this screen |
 
 ## What was wrong
 
@@ -60,7 +60,7 @@ MSI's `CC_Engine_x64.exe` competes with SignalRGB for the Mystic Light controlle
 | Plugin sending at 4 updates a second, `CC_Engine` stopped | 0 in 4 minutes |
 | Plugin sending at 10 updates a second, `CC_Engine` stopped | 0 in 4 minutes |
 
-`CC_Engine` is MSI Center's overclocking and gaming-mode engine. `scripts\stop-msi-engine.ps1` keeps it closed unless MSI Center is open, and doesn't need admin. Run it hidden at sign-in. MSI Center's overclocking features need it, so don't use this if you rely on them.
+`CC_Engine` is MSI Center's overclocking and gaming-mode engine. `scripts\stop-msi-engine.ps1` keeps it closed unless MSI Center is open. It needs admin, because `MSI.CentralServer` starts the engine elevated and a normal process gets Access denied. Run it hidden and elevated at sign-in. MSI Center's overclocking features need it, so don't use this if you rely on them.
 
 ## Board logos stay dark
 
@@ -77,7 +77,9 @@ tools\godlike-lcd.ps1 -Video clip.mp4       # see below
 tools\godlike-lcd.ps1 -Brightness 60
 ```
 
-It can't be a live SignalRGB screen. The panel stores uploads as files and plays them itself, so streaming to it would wear out its storage. That also means a picture stays with nothing running on the PC. To put MSI's hardware monitor back, choose it in MSI Center's Dynamic Dashboard page.
+**Not working yet.** On a board already playing a video set in MSI Center, `-Image` uploaded a picture and the panel reported it as selected, but the screen kept playing the video. `-Video` is untested. Keep using MSI Center's Dynamic Dashboard page to change this screen.
+
+The panel stores uploads as files and plays them itself, so a picture or video stays with nothing running on the PC. For the same reason this isn't a live SignalRGB screen: streaming would mean a file write per frame, and the storage wear from that is unknown.
 
 Videos need to be H.264 baseline MP4 at 400x864, which `ffmpeg` can produce:
 
