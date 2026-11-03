@@ -16,12 +16,12 @@ if ($Remove) {
 $ram = @{
     Name = 'ENE_RAM.js'; Vendor = 'Asus'
     Find = 'export function ImageUrl\(\)\s*\{\s*return "[^"]+";\s*\}'
-    Replace = "export function ImageUrl() { return `"$images/trident-z5-neo.png`"; }"
+    Replace = "export function ImageUrl() { return `"$images/trident-z5-neo.png?v=2`"; }"
 }
 $razer = @{
     Name = 'Razer_Modern_Mouse.js'; Vendor = 'Razer'
     Find = 'export function Initialize\(\)\s*\{'
-    Replace = "export function Initialize() {`n`tif (device.productId() === 0x00CD) { device.setImageFromUrl(`"$images/razer-dongle.png`"); }"
+    Replace = "export function Initialize() {`n`tif (device.productId() === 0x00CD) { device.setImageFromUrl(`"$images/razer-dongle.png?v=2`"); }"
 }
 
 # SignalRGB prefers its downloaded plugin updates over the copies in its install folder.

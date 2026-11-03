@@ -6,8 +6,7 @@ Sets the picture or video on the MSI MEG X870E GODLIKE dashboard LCD, without MS
   godlike-lcd.ps1 -Video clip.mp4       H.264 baseline MP4 at 400x864 (see README)
   godlike-lcd.ps1 -Brightness 60        0-100
 
-The screen stores uploads as files and plays them itself, so it keeps showing them with nothing
-running. That also means it can't be a live SignalRGB screen: streaming would wear out its storage.
+The plugin in plugin\MSI_Dynamic_Dashboard_LCD.js shows SignalRGB's LCD tab on this screen. This is for doing it by hand.
 
 Same commands as MSI's own API_DYNAMIC DASHBOARD.dll, which handles USB IDs 0DB0:84DF and
 0DB0:F53A with one class. The firmware update and reset commands are not in this file.

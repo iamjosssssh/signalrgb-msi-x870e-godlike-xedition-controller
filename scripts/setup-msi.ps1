@@ -4,6 +4,7 @@
 #  - Stops MSI's Mystic Light from taking the board and RAM back, if MSI Center is installed.
 #  - Keeps MSI's CC_Engine closed unless MSI Center is open, which stops the RAM stutter.
 #  - Turns off the copy of OpenRGB bundled with L-Connect 3, if it's there.
+#  - Builds the helper that puts SignalRGB's LCD frames on the Dynamic Dashboard, and starts it at sign-in.
 # -DevicePictures also runs tools\apply-device-images.ps1. -DryRun lists the steps and changes nothing.
 # -Remove undoes it all.
 param([switch]$DryRun, [switch]$Remove, [switch]$DevicePictures)
@@ -12,12 +13,14 @@ $repo = Split-Path $PSScriptRoot -Parent
 $pluginFolder = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WhirlwindFX\Plugins\MSI_Godlike_X'
 $installFolder = Join-Path $env:LOCALAPPDATA 'MSIGodlikeSignalRGB'
 $engineTask = 'Keep MSI CC_Engine Closed'
+$bridgeTask = 'MSI Dashboard LCD Bridge'
 $openRgb = 'C:\Program Files\Lian-Li\L-Connect 3\OpenRGB\OpenRGB.exe'
 $msiCenter = 'LightKeeperService', 'Mystic_Light_Service'
 
 if ($DryRun) {
     "Would copy the plugin to $pluginFolder"
     "Would add the sign-in task '$engineTask', run from $installFolder"
+    "Would build the LCD helper with the C# compiler that ships with Windows, and add the sign-in task '$bridgeTask'"
     if (Get-Service $msiCenter -ErrorAction SilentlyContinue) { "Would run disable-msi-mystic-light.ps1" } else { 'MSI Center not found, nothing to do for it' }
     if (Test-Path $openRgb) { "Would run disable-lconnect-openrgb.ps1" } else { 'L-Connect OpenRGB not found, nothing to do for it' }
     return
@@ -35,6 +38,8 @@ $ErrorActionPreference = 'Stop'
 
 if ($Remove) {
     Unregister-ScheduledTask -TaskName $engineTask -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $bridgeTask -Confirm:$false -ErrorAction SilentlyContinue
+    Get-Process GodlikeLcdBridge -ErrorAction SilentlyContinue | Stop-Process -Force
     Remove-Item $installFolder -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $pluginFolder -Recurse -Force -ErrorAction SilentlyContinue
     & (Join-Path $PSScriptRoot 'enable-msi-mystic-light.ps1')
@@ -57,6 +62,15 @@ $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -Ru
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $engineTask -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 Start-ScheduledTask -TaskName $engineTask
+
+Get-Process GodlikeLcdBridge -ErrorAction SilentlyContinue | Stop-Process -Force
+$bridge = Join-Path $installFolder 'GodlikeLcdBridge.exe'
+& "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /optimize+ /target:winexe /r:System.Drawing.dll "/out:$bridge" (Join-Path $repo 'bridge\GodlikeLcdBridge.cs')
+if ($LASTEXITCODE -ne 0) { throw 'The LCD helper did not compile.' }
+$bridgeAction = New-ScheduledTaskAction -Execute $bridge
+$bridgePrincipal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
+Register-ScheduledTask -TaskName $bridgeTask -Action $bridgeAction -Trigger $trigger -Principal $bridgePrincipal -Settings $settings -Force | Out-Null
+Start-ScheduledTask -TaskName $bridgeTask
 
 if (Get-Service $msiCenter -ErrorAction SilentlyContinue) { & (Join-Path $PSScriptRoot 'disable-msi-mystic-light.ps1') }
 if (Test-Path $openRgb) { & (Join-Path $PSScriptRoot 'disable-lconnect-openrgb.ps1') }

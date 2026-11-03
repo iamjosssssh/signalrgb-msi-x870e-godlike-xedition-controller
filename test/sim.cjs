@@ -122,5 +122,46 @@ console.log("--- refusals");
 ok(!/get_report|device\.read|device\.write\(/.test(source), "source has no feature reads, reads or plain writes");
 ok((source.match(/send_report\(/g) || []).length === 2, "source has exactly two send paths");
 
+console.log("--- dashboard LCD plugin");
+{
+	const code = fs.readFileSync(path.join(__dirname, "..", "plugin", "MSI_Dynamic_Dashboard_LCD.js"), "utf8")
+		.replace(/^import .*$/gm, "")
+		.replace(/^export function /gm, "function ");
+	const makeJpeg = (seed) => [0xff, 0xd8, seed & 255, 1, 2, 0xff, 0xd9];
+	const start = (update) => {
+		const s = { now: 1000, sent: [], init: null, frame: 1 };
+		const device = { log: () => {}, setFrameRateTarget: () => {} };
+		const udp = { createSocket: () => ({ on: () => {}, close: () => {}, write: (text, host, port) => s.sent.push({ text, host, port }) }) };
+		const LCD = { initialize: (o) => { s.init = o; }, getFrame: () => s.jpeg === undefined ? makeJpeg(s.frame) : s.jpeg };
+		const run = new Function("device", "udp", "LCD", "Date", "UpdateSeconds", "JpegQuality", `${code}\nreturn { Initialize, Render, ProductId, ControllableParameters };`);
+		s.api = run(device, udp, LCD, { now: () => s.now }, update, 85);
+		s.go = (ms) => { const end = s.now + ms; while (s.now < end) { s.api.Render(); s.now += 50; } };
+		s.api.Initialize();
+		return s;
+	};
+	const s = start("10");
+	ok(s.api.ProductId().includes(0xf53a) && s.api.ProductId().includes(0x84df), "covers both dashboard USB IDs");
+	s.go(29000);
+	ok(!s.init && s.sent.length === 0, "waits for SignalRGB's face scan, so a saved face isn't reset");
+	s.go(2000);
+	ok(s.init && s.init.width === 400 && s.init.height === 864, "asks SignalRGB for the panel's own 400x864");
+	ok(s.sent.length === 1 && s.sent[0].host === "127.0.0.1" && s.sent[0].port === 51875 && s.sent[0].text.startsWith("LLG1|"), "sends the frame to the helper on this PC only");
+	s.frame = 2;
+	s.go(9000);
+	ok(s.sent.length === 1, "holds back a changed frame until the update time");
+	s.go(2000);
+	ok(s.sent.length === 2, "then sends it");
+	s.go(30000);
+	ok(s.sent.length === 2, "an unchanged picture is never sent again");
+	const fast = start("1");
+	fast.go(31000);
+	fast.frame = 5;
+	fast.go(3000);
+	ok(fast.sent.length === 1, "no setting can send more often than every 5 seconds, because rapid uploads make the panel restart");
+	const notJpeg = start("10");
+	notJpeg.jpeg = [1, 2, 3, 4, 5];
+	notJpeg.go(31000);
+	ok(notJpeg.sent.length === 0, "anything that isn't a JPEG is not sent");
+}
 console.log(`\n${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

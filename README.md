@@ -1,6 +1,6 @@
 # SignalRGB controller for the MSI MEG X870E GODLIKE X EDITION
 
-A replacement SignalRGB plugin for this board's Mystic Light controller (USB `0DB0:0076`, MS-7E48), plus fixes for problems that stop SignalRGB from controlling the board and RAM.
+A replacement SignalRGB plugin for this board's Mystic Light controller (USB `0DB0:0076`, MS-7E48), a SignalRGB LCD plugin for its Dynamic Dashboard screen, and fixes for problems that stop SignalRGB from controlling the board and RAM.
 
 Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 
@@ -12,7 +12,7 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 | Logo lighting | Working and confirmed. See [Board logos stay dark](#board-logos-stay-dark) if yours don't light |
 | MSI's software taking the board back | Fixed. See [MSI keeps taking over](#msi-keeps-taking-over) |
 | RAM stutter on animated effects | Cause found and fixable. See [RAM stutter](#ram-stutter-on-animated-effects) |
-| Dynamic Dashboard LCD | Experimental upload tool, not working yet. See [The LCD](#the-lcd). MSI Center is still the way to change this screen |
+| Dynamic Dashboard LCD | **Works from SignalRGB's LCD tab**, confirmed on real hardware. It updates every few seconds rather than as live video. See [The LCD](#the-lcd) |
 
 ## What was wrong
 
@@ -48,6 +48,7 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 | Adds the task `Keep MSI CC_Engine Closed`, running as admin at sign-in | `CC_Engine` causes the RAM stutter | MSI Center's overclocking and gaming-mode features only work while its window is open |
 | If MSI Center is installed: disables `LightKeeperService` and `Mystic_Light_Service`, blocks `LEDKeeper2.exe`, stops MSI Center starting at sign-in | They take the board and RAM back | MSI Center's Mystic Light page stops working. You have to open MSI Center yourself |
 | If L-Connect 3 is installed: renames its bundled `OpenRGB.exe` | It corrupts SignalRGB's RAM scan | L-Connect keeps working without OpenRGB |
+| Builds `GodlikeLcdBridge.exe` in `%LOCALAPPDATA%\MSIGodlikeSignalRGB` and adds the task `MSI Dashboard LCD Bridge` at sign-in | A plugin can't send the screen's commands | One small background program. The screen shows SignalRGB instead of MSI Center's picture |
 
 `setup-msi.ps1 -DryRun` lists the steps without changing anything. `setup-msi.ps1 -Remove` undoes them, then remove the add-on.
 
@@ -55,7 +56,7 @@ Community project, not affiliated with MSI or WhirlwindFX. Use at your own risk.
 
 - The plugin writes only on `MEG X870E GODLIKE X EDITION (MS-7E48)`, and does nothing on any other board.
 - An MSI Center or L-Connect update can undo some of these changes. Run the setup again if the board or RAM stop following SignalRGB.
-- This repo can't change the Dynamic Dashboard LCD. Keep using MSI Center for it. See [The LCD](#the-lcd).
+- SignalRGB takes over the Dynamic Dashboard LCD once it has started. Your MSI Center picture or video stays in MSI Center and comes back if you disable the LCD device in SignalRGB. See [The LCD](#the-lcd).
 
 See [MSI keeps taking over](#msi-keeps-taking-over) and [RAM stutter](#ram-stutter-on-animated-effects) for the details.
 
@@ -100,26 +101,22 @@ Check the physical EZ LED switch on the board first. On this board it was off, w
 
 ## The LCD
 
-The screen is a separate HID device, `0DB0:F53A`, named `DYNAMIC DASHBOARD III`. MSI's own `API_DYNAMIC DASHBOARD.dll` handles it and the regular GODLIKE's `0DB0:84DF` with one class, and [godlike-dashboard-linux](https://github.com/nulltty/godlike-dashboard-linux) documents the protocol. One correction to that project: the command it calls "set name" (`0x2A`) is `DEL_FILE_NODE` in MSI's code.
+The screen is a separate HID device, `0DB0:F53A`, named `DYNAMIC DASHBOARD III`. After the setup it appears in SignalRGB as **MSI Dynamic Dashboard LCD**, with the usual LCD tab: faces, rotation, brightness and a 400 x 864 preview. Choose a face there, as with any other LCD.
 
-```powershell
-tools\godlike-lcd.ps1 -Info                 # read-only status
-tools\godlike-lcd.ps1 -Image photo.jpg      # any image Windows can read, fitted to 400x864
-tools\godlike-lcd.ps1 -Video clip.mp4       # see below
-tools\godlike-lcd.ps1 -Brightness 60
-```
+It works differently from a normal LCD. The panel takes whole picture files, not a video stream, so:
 
-**Not working yet.** On a board already playing a video set in MSI Center, `-Image` uploaded a picture and the panel reported it as selected, but the screen kept playing the video. `-Video` is untested. Keep using MSI Center's Dynamic Dashboard page to change this screen.
+- **It updates every 10 seconds by default.** Change it under **Settings** on the device, from 5 to 60 seconds. It only sends a picture that has changed.
+- **Animated faces and video won't play smoothly.** For a video, use MSI Center.
+- **Nothing below 5 seconds is offered.** Uploading about ten times a second made the panel restart itself in testing. It came back on its own, but it isn't something to repeat.
+- **Long-term storage wear is unknown.** Each update replaces a file on the panel. Evidence points to memory rather than flash: MSI's software uploads the video again at every boot, and has a separate command for making a file permanent, which this project never sends. That isn't proof, so a slower update is the cautious choice.
 
-The panel stores uploads as files and plays them itself, so a picture or video stays with nothing running on the PC. For the same reason this isn't a live SignalRGB screen: streaming would mean a file write per frame, and the storage wear from that is unknown.
+**How it works.** `plugin/MSI_Dynamic_Dashboard_LCD.js` takes each frame from SignalRGB and hands it to `bridge/GodlikeLcdBridge.cs` over 127.0.0.1, because a plugin can't send this panel's commands. The helper uploads it as `M1-S7-O-R0.jpg` with the same commands as MSI's own `API_DYNAMIC DASHBOARD.dll`, then selects slot 6 and slot 7 again so the panel shows it. The firmware update, reset and save commands aren't in the code. [godlike-dashboard-linux](https://github.com/nulltty/godlike-dashboard-linux) documented much of this protocol.
 
-Videos need to be H.264 baseline MP4 at 400x864, which `ffmpeg` can produce:
+**Going back to MSI Center's picture.** Disable the device in SignalRGB and restart your PC. MSI Center uploads its own picture at startup.
 
-```powershell
-ffmpeg -i in.mp4 -vf "scale=400:864:force_original_aspect_ratio=decrease,pad=400:864:(ow-iw)/2:(oh-ih)/2:black,setsar=1" -r 30 -an -c:v libx264 -profile:v baseline -level 3.0 -g 300 -sc_threshold 0 -pix_fmt yuvj420p -movflags +faststart out.mp4
-```
+Tested on the X870E GODLIKE X EDITION (`0DB0:F53A`). The regular GODLIKE (`0DB0:84DF`) uses the same MSI code but hasn't been tested with this plugin.
 
-The tool has no firmware update or reset commands.
+`tools\godlike-lcd.ps1` is the older command line tool, for setting a picture or brightness by hand without SignalRGB.
 
 ## Claude Code and the SignalRGB MCP
 
